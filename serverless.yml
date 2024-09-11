@@ -1,0 +1,39 @@
+service: my-load-test-service
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: ${opt:region, 'us-west-1'}
+  memorySize: 128
+  timeout: 15
+
+functions:
+  loadTest:
+    handler: handler.loadTest
+    events:
+      - http:
+          path: load-test
+          method: get
+          cors: true
+  sendLoadTestRequests:
+    handler: handler.sendLoadTestRequests
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - LoadTestQueue
+              - Arn
+          batchSize: 10
+
+resources:
+  Resources:
+    LoadTestQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: LoadTestQueue
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
